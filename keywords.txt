@@ -1,0 +1,36 @@
+#######################################
+# Syntax Coloring Map for FSS15 library
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+FSS15	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+init	KEYWORD2
+getSample	KEYWORD2
+getTheta    KEYWORD2
+getPhi  KEYWORD2
+setI2CAddress   KEYWORD2
+update_conl KEYWORD2
+setSamplingContinuous   KEYWORD2
+setSamplingRate KEYWORD2
+setSampleBit KEYWORD2
+sample_wait KEYWORD2
+default_config KEYWORD2
+
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+FSS15_SR_32HZ	LITERAL1
+FSS15_SR_16HZ	LITERAL1
+FSS15_SR_8HZ	LITERAL1
+FSS15_SR_4HZ	LITERAL1
+FSS15_CONL_CONTINUOUS	LITERAL1
+FSS15_CONL_ONESHOT LITERAL1
+FSS15_CONL_SAMPLEREQUEST LITERAL1
+FSS15_CONL_SAMPLEDONE LITERAL1
