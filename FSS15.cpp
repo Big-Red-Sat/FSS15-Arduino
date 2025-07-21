@@ -2,8 +2,9 @@
 #include "FSS15.h"
 #include <Wire.h>
 
-FSS15::FSS15(int address)
+FSS15::FSS15(int address, TwoWire *wire)
 {
+	ptr = wire;
 	_addr = address;
 	_conl_reg = 0;
 }
@@ -13,9 +14,34 @@ void FSS15::init()
 	default_config();
 }
 
+void FSS15::read_regmap(void)
+{
+	ptr->beginTransmission(_addr);
+	ptr->write(0);
+	ptr->endTransmission();
+	ptr->requestFrom(_addr, 36);
+	int i = 0;
+
+	uint8_t register_bytes[36] = { 0 };
+	while (ptr->available())
+	{
+		register_bytes[i++] = ptr->read();
+	}
+	software_version = register_bytes[0] | (register_bytes[1] << 8);
+	model = register_bytes[2] | (register_bytes[3] << 8);
+	temperature = register_bytes[4] | (register_bytes[5] << 8);
+	sample_count = register_bytes[8] | (register_bytes[9] << 8) | (register_bytes[10] << 16) | (register_bytes[11] << 24);
+	pd_sum = register_bytes[12] | (register_bytes[13] << 8) | (register_bytes[14] << 16) | (register_bytes[15] << 24);
+	control1 = register_bytes[16] | (register_bytes[17] << 8);
+	control2 = register_bytes[20];
+	status = register_bytes[24] | (register_bytes[25]);
+	alpha = register_bytes[28] | (register_bytes[29] << 8) | (register_bytes[30] << 16) | (register_bytes[31] << 24);
+	beta = register_bytes[32] | (register_bytes[33] << 8) | (register_bytes[34] << 16) | (register_bytes[35] << 24);
+}
+
 void FSS15::default_config(void)
 {
-	setContinuousSampling(false);
+	setContinuousSampling(true);
 	setSamplingRate(FSS15_SR_16HZ);
 	setSampleBit(true);
 	uint8_t current_conl = get_conl();
@@ -40,13 +66,13 @@ void FSS15::set_one_shot(void)
 
 bool FSS15::sample_wait()
 {
-	Wire.beginTransmission(_addr);
-	Wire.write(0x0A);
-	Wire.endTransmission();
-	Wire.requestFrom(_addr, 1);
-	if (Wire.available())
+	ptr->beginTransmission(_addr);
+	ptr->write(4);
+	ptr->endTransmission();
+	ptr->requestFrom(_addr, 1);
+	if (ptr->available())
 	{
-		char c = Wire.read();
+		char c = ptr->read();
 		if (!(c & (1 << 7)))
 		{
 			return true;
@@ -59,153 +85,18 @@ bool FSS15::sample_wait()
 	return false;
 }
 
-void FSS15::getSample(int16_t *theta, int16_t *phi, int16_t *temp)
-{
-	Wire.beginTransmission(_addr);
-	Wire.write(0x00);
-	Wire.endTransmission();
-
-	int16_t theta_out = 0;
-	int16_t phi_out = 0;
-	int16_t temp_out = 0;
-
-	int i = 0;
-
-	Wire.requestFrom(_addr, 6);
-	while(Wire.available())
-	{
-		char c = Wire.read();
-		if (i == 0)
-		{
-			theta_out = c;
-		}
-		else if (i == 1)
-		{
-			theta_out |= (c << 8);
-		}
-		else if (i == 2)
-		{
-			phi_out = c;
-		}
-		else if (i == 3)
-		{
-			phi_out |= (c << 8);
-		}
-		else if (i == 4)
-		{
-			temp_out = c;
-		}
-		else if (i == 5)
-		{
-			temp_out |= (c << 8);
-		}
-
-		i++;
-	}
-	*theta = theta_out;
-	*phi = phi_out;
-	*temp = temp_out;
-}
-
-int16_t FSS15::getTheta() {
-	Wire.beginTransmission(_addr);
-	Wire.write(0x00);
-	Wire.endTransmission();
-
-	int16_t theta = 0;
-	int i = 0;
-	Wire.requestFrom(_addr, 2);
-	while(Wire.available())
-	{
-		char c = Wire.read();
-		if (i == 0)
-		{
-			theta |= c;
-		}
-		else if (i == 1)
-		{
-			theta |= (c << 8);
-		}
-		i++;
-	}
-
-	return theta;
-}
-
-int16_t FSS15::getPhi()
-{
-	Wire.beginTransmission(_addr);
-	Wire.write(0x02);
-	Wire.endTransmission();
-
-	int16_t phi = 0;
-	int i = 0;
-	Wire.requestFrom(_addr, 2);
-	while(Wire.available())
-	{
-		char c = Wire.read();
-		if (i == 0)
-		{
-			phi |= c;
-		}
-		else if (i == 1)
-		{
-			phi |= (c << 8);
-		}
-		i++;
-	}
-
-	return phi;
-}
-
-int16_t FSS15::getTemp()
-{
-	Wire.beginTransmission(_addr);
-	Wire.write(0x04);
-	Wire.endTransmission();
-
-	int16_t temp = 0;
-	int i = 0;
-	Wire.requestFrom(_addr, 2);
-	while(Wire.available())
-	{
-		char c = Wire.read();
-		if (i == 0)
-		{
-			temp |= c;
-		}
-		else if (i == 1)
-		{
-			temp |= (c << 8);
-		}
-		i++;
-	}
-
-	return temp;
-}
-
-void FSS15::setI2CAddress(int newAddress)
-{
-	Wire.beginTransmission(_addr);
-	Wire.write(0x0B);
-	Wire.write(newAddress);
-	Wire.endTransmission();
-
-	_addr = newAddress;
-}
-
 uint8_t FSS15::get_conl(void)
 {
-	Wire.beginTransmission(_addr);
-	Wire.write(0x0A);
-	Wire.endTransmission();
+	ptr->beginTransmission(_addr);
+	ptr->write(4);
+	ptr->endTransmission();
 
 	uint8_t conl_reg = 0;
 	int i = 0;
-	Wire.requestFrom(_addr, 1);
-	while(Wire.available())
+	ptr->requestFrom(_addr, 1);
+	while(ptr->available())
 	{
-		conl_reg = Wire.read();
+		conl_reg = ptr->read();
 	}
 
 	return conl_reg;
@@ -213,32 +104,15 @@ uint8_t FSS15::get_conl(void)
 
 void FSS15::update_conl(void)
 {
-	Wire.beginTransmission(_addr);
-	Wire.write(0x0A);
-	Wire.write(_conl_reg);
-	Wire.endTransmission();
+	ptr->beginTransmission(_addr);
+	ptr->write(4);
+	ptr->write(_conl_reg);
+	ptr->endTransmission();
 }
 
 void FSS15::set_conl(uint8_t new_conl)
 {
 	_conl_reg = new_conl;
-}
-
-uint8_t FSS15::getAddress(void)
-{
-	Wire.beginTransmission(_addr);
-	Wire.write(0x0B);
-	Wire.endTransmission();
-
-	uint8_t addr_reg = 0;
-	int i = 0;
-	Wire.requestFrom(_addr, 1);
-	while(Wire.available())
-	{
-		addr_reg = Wire.read();
-	}
-
-	return addr_reg;
 }
 
 void FSS15::setContinuousSampling(bool continuous)

@@ -21,6 +21,7 @@ setSamplingRate KEYWORD2
 setSampleBit KEYWORD2
 sample_wait KEYWORD2
 default_config KEYWORD2
+read_regmap KEYWORD2
 
 
 #######################################
