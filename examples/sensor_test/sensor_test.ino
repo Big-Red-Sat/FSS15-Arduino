@@ -1,7 +1,10 @@
 #include <FSS15.h>
 #include <Wire.h>
 
-FSS15 sun_sensor(0x50, &Wire);
+// Change this to the Wire instance connected to your sensor
+#define WIREPORT Wire
+
+FSS15 sun_sensor(0x50, &WIREPORT);
 
 void setup() {
   // put your setup code here, to run once:
@@ -9,7 +12,7 @@ void setup() {
   while (!Serial) delay(50);
 
   Serial.println("Starting FSS15 Testing");
-  Wire.begin();
+  WIREPORT.begin();
   sun_sensor.init();
 }
 
